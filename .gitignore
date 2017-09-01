@@ -3,6 +3,18 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# vim files
+*.sw[po]
+
+# data
+*.json
+*.ckpt
+*.ckpt.index
+*.ckpt.meta
+*.ckpt.data-*
+*.tar.gz.1
+*.zip
+
 # C extensions
 *.so
 
