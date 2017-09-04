@@ -131,14 +131,14 @@ def main(_):
     #x_input_2 = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
-
+    
     salmap = SaliencyMapMethod(model)
     fgsm = FastGradientMethod(model)
     #x_input_2 = x_input + eps * tf.sign(tf.random_normal(batch_shape))
     #x_adv = fgsm.generate(x_input_2, eps=eps, clip_min=-1., clip_max=1.)
     x_adv = fgsm.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
     x_adv_2 = salmap.generate(x_input, clip_min=-1., clip_max=1.)
-    x_adv_cb = (x_adv + x_adv_2) / 2
+    #x_adv_cb = (x_adv + x_adv_2) / 2
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -149,8 +149,10 @@ def main(_):
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-        adv_images = sess.run(x_adv_cb, feed_dict={x_input: images})
-        save_images(adv_images, filenames, FLAGS.output_dir)
+        adv_images = sess.run(x_adv, feed_dict={x_input: images})
+        adv_images2 = sess.run(x_adv_2, feed_dict={x_input: images})
+        adv_images_cb = [adv_images[i] * 0.5 + adv_images2[i] * 0.5 for i in range(len(adv_images))]
+        save_images(adv_images_cb, filenames, FLAGS.output_dir)
 
 
 if __name__ == '__main__':
