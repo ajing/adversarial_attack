@@ -152,6 +152,7 @@ def main(_):
         #adv_images = sess.run(x_adv, feed_dict={x_input: images})
         adv_images2 = sess.run(x_adv_2, feed_dict={x_input: images})
         #adv_images_cb = [adv_images[i] * 0.5 + adv_images2[i] * 0.5 for i in range(len(adv_images))]
+        print("The current output dir:", FLAGS.output_dir))
         save_images(adv_images2, filenames, FLAGS.output_dir)
         #save_images(adv_images_cb, filenames, FLAGS.output_dir)
 
