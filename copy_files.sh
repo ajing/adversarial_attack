@@ -1,4 +1,9 @@
 DEST="/home/ubuntu/cleverhans/examples/nips17_adversarial_competition"
+
+# add necessary model files into existing attacks
+
+# change all file permissions
+
 # removing existing folders
 rm -r $DEST/sample_attacks
 rm -r $DEST/sample_defenses
