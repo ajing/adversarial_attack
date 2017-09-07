@@ -132,7 +132,7 @@ def main(_):
     model = InceptionModel(num_classes)
 
     fgsm = FastGradientMethod(model)
-    x_input = tf.placeholder(tf.float32, shape=batch_shape)
+
     noisy_images = x_input + 0.05 * tf.sign(tf.random_normal(batch_shape))
     x_adv = fgsm.generate(noisy_images, eps=eps, clip_min=-1., clip_max=1.)
     x_adv = x_input + tf.clip_by_value(x_adv - x_input, -eps, eps)

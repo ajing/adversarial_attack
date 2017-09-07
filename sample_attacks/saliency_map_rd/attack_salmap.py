@@ -131,10 +131,11 @@ def main(_):
 
     model = InceptionModel(num_classes)
 
+    salmap = SaliencyMapMethod(model)
+
     noisy_images = x_input + 0.05 * tf.sign(tf.random_normal(batch_shape))
-    fgsm = SaliencyMapMethod(model)
-    x_adv = fgsm.generate(noisy_images, clip_min=-1., clip_max=1.)
-    x_adv = x_input + tf.clip_by_value(x_adv - x_input, -eps, eps)
+    x_adv = salmap.generate(noisy_images, clip_min=-1., clip_max=1.)
+    #x_adv = x_input + tf.clip_by_value(x_adv - x_input, -eps, eps)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
