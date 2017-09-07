@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import SaliencyMapMethod, FastGradientMethod
+from cleverhans.attacks import FastGradientMethod
 import numpy as np
 from PIL import Image
 
@@ -128,17 +128,12 @@ def main(_):
   with tf.Graph().as_default():
     # Prepare graph
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
-    #x_input_2 = tf.placeholder(tf.float32, shape=batch_shape)
+    y_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
 
-    salmap = SaliencyMapMethod(model)
-    #fgsm = FastGradientMethod(model)
-    #x_input_2 = x_input + eps * tf.sign(tf.random_normal(batch_shape))
-    #x_adv = fgsm.generate(x_input_2, eps=eps, clip_min=-1., clip_max=1.)
-    #x_adv = fgsm.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
-    x_adv_2 = salmap.generate(x_input, clip_min=-1., clip_max=1.)
-    #x_adv_cb = (x_adv + x_adv_2) / 2
+    fgsm = FastGradientMethod(model)
+    x_adv = fgsm.generate(x_input, y = y_input, eps=eps, clip_min=-1., clip_max=1.)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -149,11 +144,9 @@ def main(_):
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-        #adv_images = sess.run(x_adv, feed_dict={x_input: images})
-        adv_images2 = sess.run(x_adv_2, feed_dict={x_input: images})
-        #adv_images_cb = [adv_images[i] * 0.5 + adv_images2[i] * 0.5 for i in range(len(adv_images))]
-        save_images(adv_images2, filenames, FLAGS.output_dir)
-        #save_images(adv_images_cb, filenames, FLAGS.output_dir)
+        target_class_for_batch = [np.ones((num_classes, 1)) * 1./num_classes] * FLAGS.batch_size
+        adv_images = sess.run(x_adv, feed_dict={x_input: images; y_input: target_class_for_batch})
+        save_images(adv_images, filenames, FLAGS.output_dir)
 
 
 if __name__ == '__main__':
