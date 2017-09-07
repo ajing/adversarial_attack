@@ -145,7 +145,7 @@ def main(_):
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
         target_class_for_batch = [np.ones((num_classes, 1)) * 1./num_classes] * FLAGS.batch_size
-        adv_images = sess.run(x_adv, feed_dict={x_input: images; y_input: target_class_for_batch})
+        adv_images = sess.run(x_adv, feed_dict={x_input: images, y_input: target_class_for_batch})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
 
