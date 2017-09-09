@@ -7,7 +7,6 @@ __pycache__/
 *.sw[po]
 
 # data
-*.json
 *.ckpt
 *.ckpt.index
 *.ckpt.meta
