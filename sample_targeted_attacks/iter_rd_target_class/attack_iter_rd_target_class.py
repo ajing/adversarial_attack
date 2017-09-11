@@ -130,7 +130,7 @@ def main(_):
       inception.inception_v3(
           x_input, num_classes=num_classes, is_training=False)
 
-    x_adv = x_input + eps * tf.sign(tf.random_normal(batch_shape))
+    x_adv = x_input + 0.05 * tf.random_normal(batch_shape)
     target_class_input = tf.placeholder(tf.int32, shape=[FLAGS.batch_size])
     one_hot_target_class = tf.one_hot(target_class_input, num_classes)
 
