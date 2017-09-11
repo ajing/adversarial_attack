@@ -123,6 +123,8 @@ def main(_):
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
 
+  from cleverhans.attacks_tf import jacobian_graph
+
   tf.logging.set_verbosity(tf.logging.INFO)
 
   with tf.Graph().as_default():
@@ -131,8 +133,8 @@ def main(_):
 
     model = InceptionModel(num_classes)
 
-    fgsm = SaliencyMapMethod(model)
-    x_adv = fgsm.generate(x_input, clip_min=-1., clip_max=1.)
+    salmap = SaliencyMapMethod(model)
+    x_adv = salmap.generate(x_input, clip_min=-1., clip_max=1., theta = 1, gamma = 0.1)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())

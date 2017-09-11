@@ -128,7 +128,7 @@ def main(_):
   with tf.Graph().as_default():
     # Prepare graph
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
-    y_input = tf.placeholder(tf.float32, shape=batch_shape)
+    y_input = tf.placeholder(tf.float32, shape=[FLAGS.batch_size, num_classes])
 
     model = InceptionModel(num_classes)
 
@@ -144,7 +144,7 @@ def main(_):
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-        target_class_for_batch = [np.ones((num_classes, 1)) * 1./num_classes] * FLAGS.batch_size
+        target_class_for_batch = np.ones((FLAGS.batch_size, num_classes)) * 1./num_classes
         adv_images = sess.run(x_adv, feed_dict={x_input: images, y_input: target_class_for_batch})
         save_images(adv_images, filenames, FLAGS.output_dir)
 

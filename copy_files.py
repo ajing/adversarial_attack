@@ -39,10 +39,10 @@ for e_folder in ["sample_attacks", "sample_defenses", "sample_targeted_attacks"]
         orig_folder = os.path.join(e_folder, e_subfolder)
         dest_folder = os.path.join(folder_dir, e_subfolder)
         if os.path.isfile(orig_folder):
-            print(bcolors.OKBLUE + "Copy file:" + orig_folder + " to destination folder:" + dest_folder + bcolors.ENDC)
+            print(bcolors.OKBLUE + "Copy file:" + bcolors.ENDC + orig_folder + " to destination folder:" + dest_folder)
             shutil.copy2(orig_folder, dest_folder)
         elif e_subfolder in attacks + attacks_target + defenses:
-            print(bcolors.OKBLUE + "Copy folder:" + orig_folder + " to destination folder:" + dest_folder + bcolors.ENDC)
+            print(bcolors.OKBLUE + "Copy folder:" + bcolors.ENDC + orig_folder + " to destination folder:" + dest_folder)
             shutil.copytree(orig_folder, dest_folder)
 
 # copy model and meta files into directory
@@ -63,7 +63,7 @@ for e_folder in ["sample_attacks", "sample_targeted_attacks", "sample_defenses"]
                 if mod_file in ["run_defense.sh", "run_attack.sh"]:
                     mod_dir = os.path.join(dest_sub_dir, mod_file)
                     # this is only supported by python 3
-                    print(bcolors.OKBLUE + "Change file mode for:"  + mod_dir + bcolors.ENDC)
+                    print(bcolors.OKBLUE + "Change file mode for:" + bcolors.ENDC  + mod_dir)
                     os.chmod(mod_dir, 0o777)
 
 
