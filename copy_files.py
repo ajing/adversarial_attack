@@ -47,12 +47,25 @@ for e_folder in ["sample_attacks", "sample_defenses", "sample_targeted_attacks"]
 
 # copy model and meta files into directory
 for efile in os.listdir(META_DIR):
+    if efile.startswith("meta"):
+        continue
     efile_dir = os.path.join(META_DIR, efile)
     for e_folder in ["sample_attacks", "sample_targeted_attacks"]:
         for e_subfolder in os.listdir(os.path.join(DEST, e_folder)):
             if not os.path.isfile(e_subfolder) :
                 dest_sub_dir = os.path.join(DEST, e_folder, e_subfolder)
                 shutil.copy2(efile_dir, dest_sub_dir)
+
+
+folder_dict = {"sample_attacks": "attack", "sample_targeted_attacks": "target", "sample_defenses": "defense"}
+for e_folder in folder_dict.keys():
+    for e_subfolder in os.listdir(os.path.join(DEST, e_folder)):
+        e_subpath = os.path.join(DEST, e_folder, e_subfolder)
+        if not os.path.isfile(e_subpath) :
+            dest_dir = os.path.join(e_subpath, "metadata.json")
+            efile_dir = os.path.join(META_DIR, "metadata_" + folder_dict[e_folder] + ".json")
+            shutil.copyfile(efile_dir, dest_dir)
+
 
 # and change file permissions
 for e_folder in ["sample_attacks", "sample_targeted_attacks", "sample_defenses"]:
