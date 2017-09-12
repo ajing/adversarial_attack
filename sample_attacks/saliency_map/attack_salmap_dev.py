@@ -132,9 +132,16 @@ def main(_):
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
-
-    salmap = SaliencyMapMethod(model)
-    x_adv = salmap.generate(x_input, clip_min=-1., clip_max=1., theta = 1, gamma = 0.1)
+    
+    preds = model(x)
+    grads = jacobian_graph(preds, x_input, nb_classes)
+    
+    def jsma_wrap(x_val):
+        jsma_batch(self.sess, x, preds, grads, x_val,
+                                  1, 0.1, -1,
+                                  1, nb_classes,
+                                  y_target=None)
+    x_adv = tf.py_func(jsma_wrap, [x_input], tf.float32)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -144,6 +151,8 @@ def main(_):
         master=FLAGS.master)
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
+      node1 = tf.constant(3.14159265, dtype=tf.float32)
+      print(sess.run([node1]))
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
         adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
