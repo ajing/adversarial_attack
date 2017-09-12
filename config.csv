@@ -1,6 +1,6 @@
 # existing attacks: basic_iter fgsm  fgsm_mody  fgsm_rd  noop  random_noise  sal_fgsm_cb  saliency_map  saliency_map_rd  visual
 saliency_map
 # existing targeted attacks: iter_rd_target_class  iter_target_class  step_target_class
-iter_rd_target_class
+
 # existing defense: adv_inception_v3  base_inception_model ens_adv_inception_resnet_v2  ens_incept_v3_resnet_v2
 adv_inception_v3,base_inception_model,ens_adv_inception_resnet_v2
