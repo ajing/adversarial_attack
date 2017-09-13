@@ -133,8 +133,6 @@ def main(_):
 
     model = InceptionModel(num_classes)
 
-    salmap = SaliencyMapMethod(model)
-    x_adv = salmap.generate(x_input, clip_min=-1., clip_max=1., theta = 1, gamma = 0.1)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -144,6 +142,10 @@ def main(_):
         master=FLAGS.master)
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
+
+      salmap = SaliencyMapMethod(model, sess=sess)
+      x_adv = salmap.generate(x_input, clip_min=-1., clip_max=1., theta = 1, gamma = 0.1)
+
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
         adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
