@@ -132,9 +132,8 @@ def main(_):
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
-
     preds = model(x_input)
-    grads = jacobian_graph(preds, x_input, num_classes)
+    print("Data type for preds:", type(preds))
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -145,6 +144,8 @@ def main(_):
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       print("Session is closed:",sess._is_closed())
+    
+      grads = jacobian_graph(preds, x_input, num_classes)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
