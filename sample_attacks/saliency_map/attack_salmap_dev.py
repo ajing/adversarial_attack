@@ -136,9 +136,6 @@ def main(_):
     preds = model(x_input)
     grads = jacobian_graph(preds, x_input, num_classes)
 
-    new_saver = tf.train.import_meta_graph('my-save-dir/my-model-10000.meta')
-    new_saver.restore(sess, 'my-save-dir/my-model-10000')
-
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
     session_creator = tf.train.ChiefSessionCreator(
@@ -148,9 +145,6 @@ def main(_):
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       print("Session is closed:",sess._is_closed())
-
-      saver.save(sess, 'saliency_map_model',global_step=1000)
-      tf.train.export_meta_graph(filename='/tmp/my-model.meta')
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
