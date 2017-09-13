@@ -122,7 +122,8 @@ def main(_):
   eps = 2.0 * FLAGS.max_epsilon / 255.0
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
-
+  BUILD_MODEL = True
+  
   from cleverhans.attacks_tf import jacobian_graph, jsma_batch
 
   tf.logging.set_verbosity(tf.logging.INFO)
@@ -133,14 +134,14 @@ def main(_):
 
     model = InceptionModel(num_classes)
 
-    preds = model(x_input)
-    grads = jacobian_graph(preds, x_input, num_classes)
-
-    new_saver = tf.train.import_meta_graph('my-save-dir/my-model-10000.meta')
-    new_saver.restore(sess, 'my-save-dir/my-model-10000')
+    if BUILD_MODEL:
+      preds = model(x_input)
+      grads = jacobian_graph(preds, x_input, num_classes)
+      saver = tf.train.Saver(slim.get_model_variables())
+    else:
+      saver = tf.train.Saver(filename = 'model/saliency_map_model-1000.meta')
 
     # Run computation
-    saver = tf.train.Saver(slim.get_model_variables())
     session_creator = tf.train.ChiefSessionCreator(
         scaffold=tf.train.Scaffold(saver=saver),
         checkpoint_filename_with_path=FLAGS.checkpoint_path,
@@ -149,8 +150,8 @@ def main(_):
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       print("Session is closed:",sess._is_closed())
 
-      saver.save(sess, 'saliency_map_model',global_step=1000)
-      tf.train.export_meta_graph(filename='/tmp/my-model.meta')
+      if BUILD_MODEL:
+        saver.save(sess, 'saliency_map_model', global_step=1000)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
