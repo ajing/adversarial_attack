@@ -123,21 +123,16 @@ def main(_):
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
 
-  from cleverhans.attacks_tf import jacobian_graph, jsma_batch
+  from cleverhans.attacks_tf import jacobian_graph
 
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  with tf.Graph().as_default() as d_graph:
+  with tf.Graph().as_default():
     # Prepare graph
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
 
-    preds = model(x_input)
-    grads = jacobian_graph(preds, x_input, num_classes)
-
-    new_saver = tf.train.import_meta_graph('my-save-dir/my-model-10000.meta')
-    new_saver.restore(sess, 'my-save-dir/my-model-10000')
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -147,18 +142,12 @@ def main(_):
         master=FLAGS.master)
 
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
-      print("Session is closed:",sess._is_closed())
 
-      saver.save(sess, 'saliency_map_model',global_step=1000)
-      tf.train.export_meta_graph(filename='/tmp/my-model.meta')
+      salmap = SaliencyMapMethod(model, sess=sess)
+      x_adv = salmap.generate(x_input, clip_min=-1., clip_max=1., theta = 1, gamma = 0.1)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-
-        adv_images = jsma_batch(sess, x_input, preds, grads, images,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-
+        adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
 
