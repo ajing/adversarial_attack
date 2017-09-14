@@ -6,12 +6,14 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import SaliencyMapMethod, FastGradientMethod
+from cleverhans.attacks import FastGradientMethod
 import numpy as np
 from PIL import Image
 
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import inception
+
+from attacks_tf_df import DeepFool
 
 slim = tf.contrib.slim
 
@@ -122,32 +124,24 @@ def main(_):
   eps = 2.0 * FLAGS.max_epsilon / 255.0
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
-  BUILD_MODEL = True
-
-  from cleverhans.attacks_tf import jacobian_graph, jsma_batch
 
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  with tf.Graph().as_default() as d_graph:
+  with tf.Graph().as_default():
     # Prepare graph
-
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
+
     model = InceptionModel(num_classes)
 
-    preds = model(x_input)
-    #grads = jacobian_graph(preds, x_input, num_classes)
-    saver = tf.train.Saver(slim.get_model_variables())
-
-    # Run computation
     with tf.Session() as sess:
-      #print("Session is closed:",sess._is_closed())
+      df = DeepFool(model, sess=sess)
+      x_adv = df.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
+
+      # Run computation
+      saver = tf.train.Saver(slim.get_model_variables())
       saver.restore(sess, FLAGS.checkpoint_path)
 
-      salmap = SaliencyMapMethod(model, sess = sess)
-      x_adv = salmap.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
-
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-
         adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
