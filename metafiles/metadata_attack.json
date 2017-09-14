@@ -1,6 +1,6 @@
 {
   "type": "attack",
-  "container": "ajing/competition:gpu",
+  "container": "ajing/competition:cpu",
   "container_gpu": "ajing/competition:gpu",
   "entry_point": "run_attack.sh"
 }
