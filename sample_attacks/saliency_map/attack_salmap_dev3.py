@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import SaliencyMapMethod
+from cleverhans.attacks import SaliencyMapMethod, FastGradientMethod
 import numpy as np
 from PIL import Image
 
@@ -131,41 +131,24 @@ def main(_):
   with tf.Graph().as_default() as d_graph:
     # Prepare graph
 
+    x_input = tf.placeholder(tf.float32, shape=batch_shape)
     model = InceptionModel(num_classes)
 
-    if BUILD_MODEL:
-      print("Build the model and try to save the current graph")
-      x_input = tf.placeholder(tf.float32, shape=batch_shape)
-      preds = model(x_input)
-      grads = jacobian_graph(preds, x_input, num_classes)
-      saver = tf.train.Saver(slim.get_model_variables())
-      tf.add_to_collection("x_input", x_input)
-      tf.add_to_collection("preds", preds)
-      tf.add_to_collection("grads", grads)
-    else:
-      saver = tf.train.Saver(filename = 'model/saliency_map_model-1000.meta')
+    preds = model(x_input)
+    #grads = jacobian_graph(preds, x_input, num_classes)
+    saver = tf.train.Saver(slim.get_model_variables())
 
     # Run computation
-
     with tf.Session() as sess:
-      print("Session is closed:",sess._is_closed())
+      #print("Session is closed:",sess._is_closed())
+      saver.restore(sess, FLAGS.checkpoint_path)
 
-      if BUILD_MODEL:
-        saver.save(sess, 'saliency_map_model', global_step=1000)
-      else:
-        saver.restore(sess, "model/saliency_map_model-1000")
-        x_input = tf.get_collection('x_input')[0]
-        preds = tf.get_collection('preds')[0]
-        grads = tf.get_collection('grads')[0]
-
+      salmap = SaliencyMapMethod(model)
+      x_adv = salmap.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
-        adv_images = jsma_batch(sess, x_input, preds, grads, images,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-
+        adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
 
