@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import SaliencyMapMethod
+from cleverhans.attacks import SaliencyMapMethod, FastGradientMethod
 import numpy as np
 from PIL import Image
 
@@ -122,6 +122,7 @@ def main(_):
   eps = 2.0 * FLAGS.max_epsilon / 255.0
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
+  BUILD_MODEL = True
 
   from cleverhans.attacks_tf import jacobian_graph, jsma_batch
 
@@ -129,38 +130,25 @@ def main(_):
 
   with tf.Graph().as_default() as d_graph:
     # Prepare graph
-    x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
+    x_input = tf.placeholder(tf.float32, shape=batch_shape)
     model = InceptionModel(num_classes)
-    print("Variable type for model:", type(model))
 
     preds = model(x_input)
+    #grads = jacobian_graph(preds, x_input, num_classes)
+    saver = tf.train.Saver(slim.get_model_variables())
 
     # Run computation
-    saver = tf.train.Saver(slim.get_model_variables())
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=tf.train.Scaffold(saver=saver),
-        checkpoint_filename_with_path=FLAGS.checkpoint_path,
-        master=FLAGS.master)
+    with tf.Session() as sess:
+      #print("Session is closed:",sess._is_closed())
+      saver.restore(sess, FLAGS.checkpoint_path)
 
-    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
-      print("Session is closed:",sess._is_closed())
-
-      def jsma_wrap(x_val):
-          jsma_batch(sess, x, preds, grads, x_val,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-      x_adv = tf.py_func(jsma_wrap, [x_input], tf.float32)
-      grads = jacobian_graph(preds, x_input, num_classes)
+      salmap = SaliencyMapMethod(model, sess = sess)
+      x_adv = salmap.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
-        adv_images = jsma_batch(sess, x_input, preds, grads, images,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-
+        adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
 

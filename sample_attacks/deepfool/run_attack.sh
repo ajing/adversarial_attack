@@ -14,7 +14,7 @@ INPUT_DIR=$1
 OUTPUT_DIR=$2
 MAX_EPSILON=$3
 
-python attack_salmap_dev2.py \
+python attack_df.py\
   --input_dir="${INPUT_DIR}" \
   --output_dir="${OUTPUT_DIR}" \
   --max_epsilon="${MAX_EPSILON}" \

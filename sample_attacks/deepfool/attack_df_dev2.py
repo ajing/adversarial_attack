@@ -122,6 +122,7 @@ def main(_):
   eps = 2.0 * FLAGS.max_epsilon / 255.0
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
+  BUILD_MODEL = True
 
   from cleverhans.attacks_tf import jacobian_graph, jsma_batch
 
@@ -129,30 +130,34 @@ def main(_):
 
   with tf.Graph().as_default() as d_graph:
     # Prepare graph
-    x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
-    print("Variable type for model:", type(model))
 
-    preds = model(x_input)
+    if BUILD_MODEL:
+      print("Build the model and try to save the current graph")
+      x_input = tf.placeholder(tf.float32, shape=batch_shape)
+      preds = model(x_input)
+      grads = jacobian_graph(preds, x_input, num_classes)
+      saver = tf.train.Saver(slim.get_model_variables())
+      tf.add_to_collection("x_input", x_input)
+      tf.add_to_collection("preds", preds)
+      tf.add_to_collection("grads", grads)
+    else:
+      saver = tf.train.Saver(filename = 'model/saliency_map_model-1000.meta')
 
     # Run computation
-    saver = tf.train.Saver(slim.get_model_variables())
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=tf.train.Scaffold(saver=saver),
-        checkpoint_filename_with_path=FLAGS.checkpoint_path,
-        master=FLAGS.master)
 
-    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
-      print("Session is closed:",sess._is_closed())
+    with tf.Session() as sess:
+      #print("Session is closed:",sess._is_closed())
 
-      def jsma_wrap(x_val):
-          jsma_batch(sess, x, preds, grads, x_val,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-      x_adv = tf.py_func(jsma_wrap, [x_input], tf.float32)
-      grads = jacobian_graph(preds, x_input, num_classes)
+      if BUILD_MODEL:
+        saver.save(sess, 'saliency_map_model', global_step=1000)
+      else:
+        saver.restore(sess, "model/saliency_map_model-1000")
+        x_input = tf.get_collection('x_input')[0]
+        preds = tf.get_collection('preds')[0]
+        grads = tf.get_collection('grads')[0]
+
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
 
