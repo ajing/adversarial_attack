@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import SaliencyMapMethod
+from cleverhans.attacks import BasicIterativeMethod
 import numpy as np
 from PIL import Image
 
@@ -122,45 +122,36 @@ def main(_):
   eps = 2.0 * FLAGS.max_epsilon / 255.0
   batch_shape = [FLAGS.batch_size, FLAGS.image_height, FLAGS.image_width, 3]
   num_classes = 1001
-  BUILD_MODEL = False
-
-  from cleverhans.attacks_tf import jacobian_graph, jsma_batch
 
   tf.logging.set_verbosity(tf.logging.INFO)
 
-  with tf.Graph().as_default() as d_graph:
+  with tf.Graph().as_default():
     # Prepare graph
+    x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
     model = InceptionModel(num_classes)
 
+    biter = BasicIterativeMethod(model)
+    x_adv1 = biter.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
+
+    fgsm = FastGradientMethod(model)
+    noisy_images = x_input + 0.05 * tf.sign(tf.random_normal(batch_shape))
+    x_adv2 = fgsm.generate(noisy_images, eps=eps, clip_min=-1., clip_max=1.)
+    x_adv2 = x_input + tf.clip_by_value(x_adv - x_input, -eps, eps)
+
+    x_adv = 0.5 * x_adv1 + 0.5 * x_adv2
+
+
     # Run computation
+    saver = tf.train.Saver(slim.get_model_variables())
+    session_creator = tf.train.ChiefSessionCreator(
+        scaffold=tf.train.Scaffold(saver=saver),
+        checkpoint_filename_with_path=FLAGS.checkpoint_path,
+        master=FLAGS.master)
 
-    with tf.Session() as sess:
-      #print("Session is closed:",sess._is_closed())
-      if BUILD_MODEL:
-        print("Build the model and try to save the current graph")
-        x_input = tf.placeholder(tf.float32, shape=batch_shape)
-        preds = model(x_input)
-        grads = jacobian_graph(preds, x_input, num_classes)
-        saver = tf.train.Saver(slim.get_model_variables())
-        #tf.add_to_collection("grads", grads)
-        saver.restore(sess, FLAGS.checkpoint_path)
-        saver.save(sess, 'model/saliency_map_model', global_step=1000)
-      else:
-        saver = tf.train.import_meta_graph('model/saliency_map_model-1000.meta')
-        saver.restore(sess,tf.train.latest_checkpoint('model'))
-        x_input = tf.get_collection('x_input')[0]
-        preds = tf.get_collection('preds')[0]
-        grads = tf.get_collection('grads')[0]
-
-
+    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
-
-        adv_images = jsma_batch(sess, x_input, preds, grads, images,
-                                    1, 0.1, -1,
-                                    1, num_classes,
-                                    y_target=None)
-
+        adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)
 
 
