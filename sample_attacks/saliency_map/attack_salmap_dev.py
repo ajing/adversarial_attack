@@ -133,8 +133,8 @@ def main(_):
 
     model = InceptionModel(num_classes)
     print("Variable type for model:", type(model))
+
     preds = model(x_input)
-    print("Variable type for preds:", type(preds))
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
@@ -146,6 +146,12 @@ def main(_):
     with tf.train.MonitoredSession(session_creator=session_creator) as sess:
       print("Session is closed:",sess._is_closed())
 
+      def jsma_wrap(x_val):
+          jsma_batch(sess, x, preds, grads, x_val,
+                                    1, 0.1, -1,
+                                    1, num_classes,
+                                    y_target=None)
+      x_adv = tf.py_func(jsma_wrap, [x_input], tf.float32)
       grads = jacobian_graph(preds, x_input, num_classes)
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
