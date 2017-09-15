@@ -137,7 +137,7 @@ def main(_):
       fgsm = FastGradientMethod(model)
       x_adv = fgsm.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
 
-      saver = tf.train.import_meta_graph('ens_adv_inception_resnet_v2.ckpt.meta')
+      saver = tf.train.Saver(slim.get_model_variables())
       saver.restore(sess,"ens_adv_inception_resnet_v2.ckpt")
 
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
