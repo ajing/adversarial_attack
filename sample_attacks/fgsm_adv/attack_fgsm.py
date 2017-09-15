@@ -6,12 +6,14 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import BasicIterativeMethod, FastGradientMethod
+from cleverhans.attacks import FastGradientMethod
 import numpy as np
 from PIL import Image
 
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import inception
+
+import inception_resnet_v2
 
 slim = tf.contrib.slim
 
@@ -94,7 +96,7 @@ def save_images(images, filenames, output_dir):
       Image.fromarray(img).save(f, format='PNG')
 
 
-class InceptionModel(object):
+class InceptionResNetModel(object):
   """Model class for CleverHans library."""
 
   def __init__(self, num_classes):
@@ -105,7 +107,7 @@ class InceptionModel(object):
     """Constructs model and return probabilities for given input."""
     reuse = True if self.built else None
     with slim.arg_scope(inception.inception_v3_arg_scope()):
-      _, end_points = inception.inception_v3(
+      _, end_points = inception_resnet_v2.inception_resnet_v2(
           x_input, num_classes=self.num_classes, is_training=False,
           reuse=reuse)
     self.built = True
@@ -129,27 +131,15 @@ def main(_):
     # Prepare graph
     x_input = tf.placeholder(tf.float32, shape=batch_shape)
 
-    model = InceptionModel(num_classes)
-
-    biter = BasicIterativeMethod(model)
-    x_adv1 = biter.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
-
-    fgsm = FastGradientMethod(model)
-    noisy_images = x_input + 0.05 * tf.sign(tf.random_normal(batch_shape))
-    x_adv2 = fgsm.generate(noisy_images, eps=eps, clip_min=-1., clip_max=1.)
-    x_adv2 = x_input + tf.clip_by_value(x_adv2 - x_input, -eps, eps)
-
-    x_adv = 0.6 * x_adv1 + 0.4 * x_adv2
-
-
     # Run computation
-    saver = tf.train.Saver(slim.get_model_variables())
-    session_creator = tf.train.ChiefSessionCreator(
-        scaffold=tf.train.Scaffold(saver=saver),
-        checkpoint_filename_with_path=FLAGS.checkpoint_path,
-        master=FLAGS.master)
+    with tf.Session() as sess:
+      model = InceptionResNetModel(num_classes)
+      fgsm = FastGradientMethod(model)
+      x_adv = fgsm.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
 
-    with tf.train.MonitoredSession(session_creator=session_creator) as sess:
+      saver = tf.train.import_meta_graph('ens_adv_inception_resnet_v2.ckpt.meta')
+      saver.restore(sess,"ens_adv_inception_resnet_v2.ckpt")
+
       for filenames, images in load_images(FLAGS.input_dir, batch_shape):
         adv_images = sess.run(x_adv, feed_dict={x_input: images})
         save_images(adv_images, filenames, FLAGS.output_dir)

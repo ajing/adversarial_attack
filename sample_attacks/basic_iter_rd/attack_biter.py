@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import os
 
-from cleverhans.attacks import BasicIterativeMethod, FastGradientMethod
+from cleverhans.attacks import BasicIterativeMethod
 import numpy as np
 from PIL import Image
 
@@ -131,16 +131,9 @@ def main(_):
 
     model = InceptionModel(num_classes)
 
-    biter = BasicIterativeMethod(model)
-    x_adv1 = biter.generate(x_input, eps=eps, clip_min=-1., clip_max=1.)
-
-    fgsm = FastGradientMethod(model)
     noisy_images = x_input + 0.05 * tf.sign(tf.random_normal(batch_shape))
-    x_adv2 = fgsm.generate(noisy_images, eps=eps, clip_min=-1., clip_max=1.)
-    x_adv2 = x_input + tf.clip_by_value(x_adv2 - x_input, -eps, eps)
-
-    x_adv = 0.6 * x_adv1 + 0.4 * x_adv2
-
+    fgsm = BasicIterativeMethod(model)
+    x_adv = fgsm.generate(noisy_images, eps=eps, clip_min=-1., clip_max=1.)
 
     # Run computation
     saver = tf.train.Saver(slim.get_model_variables())
